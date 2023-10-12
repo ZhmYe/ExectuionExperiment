@@ -1,7 +1,6 @@
 package src
 
 import (
-	"crypto/rsa"
 	"github.com/google/uuid"
 	"github.com/syndtr/goleveldb/leveldb"
 	"math/rand"
@@ -11,9 +10,7 @@ import (
 type Smallbank struct {
 	savings   []string
 	checkings []string
-	publicKey *rsa.PublicKey
-	hashed    [32]byte
-	signature []byte
+	txid      int
 	db        *leveldb.DB
 }
 
@@ -32,6 +29,7 @@ func (s *Smallbank) TransactSavings(account string, amount int) *Transaction {
 		Ops:      []Op{r, w},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   transactSavings,
 	}
 }
@@ -51,6 +49,7 @@ func (s *Smallbank) DepositChecking(account string, amount int) *Transaction {
 		Ops:      []Op{r, w},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   depositChecking,
 	}
 }
@@ -79,6 +78,7 @@ func (s *Smallbank) SendPayment(accountA string, accountB string, amount int) *T
 		Ops:      []Op{ra, rb, wa, wb},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   sendPayment,
 	}
 }
@@ -98,6 +98,7 @@ func (s *Smallbank) WriteCheck(account string, amount int) *Transaction {
 		Ops:      []Op{r, w},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   writeCheck,
 	}
 }
@@ -126,6 +127,7 @@ func (s *Smallbank) Amalgamate(saving string, checking string) *Transaction {
 		Ops:      []Op{ra, rb, wa, wb},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   amalgamate,
 	}
 }
@@ -144,6 +146,7 @@ func (s *Smallbank) Query(saving string, checking string) *Transaction {
 		Ops:      []Op{ra, rb},
 		abort:    false,
 		sequence: -1,
+		txHash:   strconv.Itoa(s.txid),
 		txType:   query,
 	}
 }
@@ -168,6 +171,7 @@ func (s *Smallbank) GetNormalRandomIndex() int {
 }
 
 func (s *Smallbank) GetRandomTx() *Transaction {
+	s.txid++
 	switch rand.Int() % 6 {
 	case 0:
 		i := s.GetNormalRandomIndex()
@@ -263,5 +267,6 @@ func NewSmallbank(path string) *Smallbank {
 		s.db.Put([]byte(s.savings[i]), []byte(strconv.Itoa(savingAmount[i])), nil)
 		s.db.Put([]byte(s.checkings[i]), []byte(strconv.Itoa(checkingAmount[i])), nil)
 	}
+	s.txid = 0
 	return s
 }

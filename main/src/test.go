@@ -14,7 +14,7 @@ func TestSmallbank(output bool) *Smallbank {
 	return smallbank
 }
 func TestGenerateTransaction(output bool) []*Transaction {
-	txNumber := 200 * 1
+	txNumber := 2400
 	smallbank := TestSmallbank(false)
 	txs := smallbank.GenTxSet(txNumber)
 	if !output {
@@ -52,6 +52,37 @@ func TestGetACG(output bool) ([]*Transaction, ACG) {
 		fmt.Println()
 	}
 	return txs, acg
+}
+func TestBuildConflictGraph(output bool) {
+	txs := TestGenerateTransaction(false)
+	fmt.Println("generate tx success")
+	fmt.Println("tx number:" + strconv.Itoa(len(txs)))
+	graph := buildConflictGraph(txs)
+	for i, _ := range graph {
+		for j, _ := range graph[i] {
+			fmt.Print(graph[i][j])
+			fmt.Print(" ")
+		}
+		fmt.Println()
+	}
+}
+func TestTarjan(output bool) {
+	txs := TestGenerateTransaction(false)
+	fmt.Println("generate tx success")
+	fmt.Println("tx number:" + strconv.Itoa(len(txs)))
+	cg := newCG(txs)
+	cg.getSubGraph()
+	fmt.Println(len(cg.subGraph))
+}
+func TestFindCycles(output bool) {
+	txs := TestGenerateTransaction(false)
+	fmt.Println("generate tx success")
+	fmt.Println("tx number:" + strconv.Itoa(len(txs)))
+	cg := newCG(txs)
+	cg.getSubGraph()
+	cg.getAllCycles()
+	fmt.Println(len(cg.cycles))
+
 }
 func TestNezha(output bool) {
 	txs := TestGenerateTransaction(false)

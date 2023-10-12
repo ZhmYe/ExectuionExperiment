@@ -3,6 +3,7 @@ package src
 type FabricPP struct {
 	rate float64
 	txs  []*Transaction
+	cg   CG
 }
 
 func newFabricPP(txs []*Transaction) *FabricPP {

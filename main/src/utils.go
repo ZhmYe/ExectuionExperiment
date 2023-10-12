@@ -32,30 +32,6 @@ func TopologicalOrder(DAG [][]int) []int {
 	return sortResult
 }
 
-func getReadSetNumber(readSet []Unit, record map[string]map[string][]Unit) int {
-	repeatCheck := make(map[string]bool)
-	total := 0
-	if len(readSet) == 0 {
-		return 0
-	}
-	for _, unit := range readSet {
-		_, repeat := repeatCheck[unit.tx.txHash]
-		// 如果当前交易有两笔读操作在同一个address或当前交易已经被abort,无需重复计算
-		if repeat || unit.tx.abort {
-			continue
-		}
-		total += 1
-		repeatCheck[unit.tx.txHash] = true
-		CascadeInAddress, haveCascade := record[unit.tx.txHash]
-		if haveCascade {
-			for _, eachReadSet := range CascadeInAddress {
-				total += getReadSetNumber(eachReadSet, record)
-			}
-		}
-	}
-	return total
-}
-
 func generateRandomAddress() string {
 	n := 16
 	var letters = []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
@@ -78,4 +54,81 @@ func generateRandomTxhash() string {
 	}
 	return string(result)
 
+}
+func checkInPath(n int, path []int) bool {
+	for _, p := range path {
+		if p == n {
+			return true
+		}
+	}
+	return false
+}
+func findCycle(graph Graph, target int, index int, path []int, result *[][]int) {
+	//fmt.Print(index)
+	//fmt.Print(" ")
+	if graph[index][target] == 1 {
+		tmp := sort(append(path, index))
+		exist := false
+		for _, r := range *result {
+			if len(r) == len(tmp) {
+				same := true
+				for k, _ := range r {
+					if r[k] != tmp[k] {
+						same = false
+						break
+					}
+				}
+				exist = same
+			}
+			if exist {
+				break
+			}
+		}
+		if !exist {
+			*result = append(*result, tmp)
+		}
+		//fmt.Println(append(path, index))
+	} else {
+		for i, _ := range graph[index] {
+			if graph[index][i] == 1 && !checkInPath(i, path) {
+				findCycle(graph, target, i, append(path, index), result)
+			}
+		}
+	}
+}
+func findCycles(graph Graph) [][]int {
+	results := make([][]int, 0)
+	for i, _ := range graph {
+		findCycle(graph, i, i, *new([]int), &results)
+	}
+	return results
+}
+func sort(a []int) []int {
+	for i := 0; i < len(a); i++ {
+		for j := i + 1; j < len(a); j++ {
+			if a[i] > a[j] {
+				a[i], a[j] = a[j], a[i]
+			}
+		}
+	}
+	return a
+}
+func getMaxFromCounter(m map[int]int) int {
+	maxCount := 0
+	maxid := -1
+	for txid, count := range m {
+		if count > maxCount {
+			maxCount = count
+			maxid = txid
+		}
+	}
+	return maxid
+}
+func checkStillCycle(m map[int]bool) bool {
+	for _, flag := range m {
+		if !flag {
+			return false
+		}
+	}
+	return true
 }
