@@ -49,7 +49,7 @@ func getACG(txs []*Transaction) ACG {
 				acg[op.Key] = *newStateSet()
 			}
 
-			unit := newUnit(op, tx) // 新建操作单元
+			unit := newUnit(*op, tx) // 新建操作单元
 			stateSet := acg[op.Key]
 
 			// 根据读/写操作加入到StateSet的两部分中

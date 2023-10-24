@@ -2,9 +2,10 @@ package src
 
 // NeZha Nezha实例
 type NeZha struct {
-	acg  ACG
-	rate float64
-	txs  []*Transaction
+	acg   ACG
+	rate  float64
+	txs   []*Transaction
+	order []int
 }
 
 func newNeZha(txs []*Transaction) *NeZha {
@@ -12,6 +13,7 @@ func newNeZha(txs []*Transaction) *NeZha {
 	nezha.rate = 0
 	nezha.txs = txs
 	nezha.acg = *new(ACG)
+	nezha.order = make([]int, 0)
 	return nezha
 }
 func (nezha *NeZha) getACG() {
@@ -130,5 +132,26 @@ func (nezha *NeZha) TransactionSort() {
 				writeSeq += 1
 			}
 		}
+	}
+	nezha.Sort()
+}
+func (nezha *NeZha) Sort() {
+	seq := 0
+	flag := false
+	for {
+		for i, tx := range nezha.txs {
+			if tx.abort {
+				continue
+			}
+			if tx.sequence == seq {
+				flag = true
+				nezha.order = append(nezha.order, i)
+			}
+		}
+		if !flag {
+			break
+		}
+		flag = false
+		seq++
 	}
 }

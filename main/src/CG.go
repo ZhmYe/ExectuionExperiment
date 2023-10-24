@@ -154,6 +154,9 @@ func (cg *CG) getAllCycles() {
 		g := cg.buildSubGraph(indexes)
 		cycles := findCycles(g)
 		for _, cycle := range cycles {
+			for i, bias := range cycle {
+				cycle[i] = indexes[bias]
+			}
 			cg.cycles = append(cg.cycles, cycle)
 		}
 	}
@@ -162,6 +165,7 @@ func (cg *CG) getAllCycles() {
 func (cg *CG) TransactionAbort() {
 	counter := make(map[int]int, 0)
 	for _, cycle := range cg.cycles {
+		//fmt.Println(cycle)
 		for _, tx := range cycle {
 			_, exist := counter[tx]
 			if exist {
@@ -171,6 +175,7 @@ func (cg *CG) TransactionAbort() {
 			}
 		}
 	}
+	//fmt.Println(counter)
 	stillCycle := make(map[int]bool, 0)
 	for c, _ := range cg.cycles {
 		stillCycle[c] = false
@@ -178,7 +183,14 @@ func (cg *CG) TransactionAbort() {
 	for !checkStillCycle(stillCycle) {
 		txid := getMaxFromCounter(counter)
 		cg.txs[txid].abort = true
+		for j := 0; j < len(cg.txs); j++ {
+			cg.graph[txid][j] = -1
+			cg.graph[j][txid] = -1
+		}
 		for c, cycle := range cg.cycles {
+			if stillCycle[c] {
+				continue
+			}
 			contain := false
 			for i, _ := range cycle {
 				if cycle[i] == txid {

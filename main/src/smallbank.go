@@ -5,6 +5,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 type Smallbank struct {
@@ -12,6 +13,8 @@ type Smallbank struct {
 	checkings []string
 	txid      int
 	db        *leveldb.DB
+	zipfian   *Zipfian
+	r         *rand.Rand
 }
 
 // TransactSavings 向储蓄账户增加一定余额
@@ -26,7 +29,7 @@ func (s *Smallbank) TransactSavings(account string, amount int) *Transaction {
 		Val:  strconv.Itoa(amount),
 	}
 	return &Transaction{
-		Ops:      []Op{r, w},
+		Ops:      []*Op{&r, &w},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -46,7 +49,7 @@ func (s *Smallbank) DepositChecking(account string, amount int) *Transaction {
 		Val:  strconv.Itoa(amount),
 	}
 	return &Transaction{
-		Ops:      []Op{r, w},
+		Ops:      []*Op{&r, &w},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -75,7 +78,7 @@ func (s *Smallbank) SendPayment(accountA string, accountB string, amount int) *T
 		Val:  strconv.Itoa(amount),
 	}
 	return &Transaction{
-		Ops:      []Op{ra, rb, wa, wb},
+		Ops:      []*Op{&ra, &rb, &wa, &wb},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -95,7 +98,7 @@ func (s *Smallbank) WriteCheck(account string, amount int) *Transaction {
 		Val:  strconv.Itoa(-amount),
 	}
 	return &Transaction{
-		Ops:      []Op{r, w},
+		Ops:      []*Op{&r, &w},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -124,7 +127,7 @@ func (s *Smallbank) Amalgamate(saving string, checking string) *Transaction {
 		Val:  strconv.Itoa(0),
 	}
 	return &Transaction{
-		Ops:      []Op{ra, rb, wa, wb},
+		Ops:      []*Op{&ra, &rb, &wa, &wb},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -143,7 +146,7 @@ func (s *Smallbank) Query(saving string, checking string) *Transaction {
 		Key:  checking,
 	}
 	return &Transaction{
-		Ops:      []Op{ra, rb},
+		Ops:      []*Op{&ra, &rb},
 		abort:    false,
 		sequence: -1,
 		txHash:   strconv.Itoa(s.txid),
@@ -155,13 +158,14 @@ func (s *Smallbank) GetRandomAmount() int {
 	return RandomRange(1e3, 1e4)
 }
 func (s *Smallbank) GetNormalRandomIndex() int {
-	n := len(s.savings)
-	hotRateCheck := rand.Float64()
-	if hotRateCheck < config.HotKeyRate {
-		return int(rand.Float64() * float64(n) * config.HotKey)
-	} else {
-		return int(rand.Float64()*float64(n)*(1-config.HotKey)) + int(float64(n)*config.HotKey)
-	}
+	return int(s.zipfian.Next(s.r))
+	//n := len(s.savings)
+	//hotRateCheck := rand.Float64()
+	//if hotRateCheck < config.HotKeyRate {
+	//	return int(rand.Float64() * float64(n) * config.HotKey)
+	//} else {
+	//	return int(rand.Float64()*float64(n)*(1-config.HotKey)) + int(float64(n)*config.HotKey)
+	//}
 	//for {
 	//	x := int(rand.NormFloat64()*config.StdDiff) + n/2
 	//	if x >= 0 && x < n {
@@ -232,6 +236,9 @@ func (s *Smallbank) Write(key, val string) {
 func (s *Smallbank) Update(key, val string) {
 	s.db.Put([]byte(key), []byte(val), nil)
 }
+func (s *Smallbank) UpdateZipfian() {
+	s.zipfian = NewZipfianWithItems(int64(config.OriginKeys), config.ZipfianConstant)
+}
 func GenSaving(n int) ([]string, []int) {
 	saving := make([]string, n)
 	amount := make([]int, n)
@@ -258,6 +265,7 @@ func NewSmallbank(path string) *Smallbank {
 		savings:   saving,
 		checkings: checking,
 	}
+
 	var err error
 	s.db, err = leveldb.OpenFile(path, nil)
 	if err != nil {
@@ -268,5 +276,9 @@ func NewSmallbank(path string) *Smallbank {
 		s.db.Put([]byte(s.checkings[i]), []byte(strconv.Itoa(checkingAmount[i])), nil)
 	}
 	s.txid = 0
+	s.r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	s.zipfian = NewZipfianWithItems(int64(config.OriginKeys), config.ZipfianConstant)
 	return s
 }
+
+var globalSmallBank = TestSmallbank(true)
