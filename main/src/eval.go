@@ -2,6 +2,7 @@ package src
 
 import (
 	"fmt"
+	"github.com/shirou/gopsutil/cpu"
 	"strconv"
 	"time"
 )
@@ -277,4 +278,93 @@ func Instance_Not_Execute_Block_Number_Evaluation() {
 func Baseline_Not_Execute_Block_Number_Evaluation() {
 	peer := newPeer(4)
 	peer.runInBaseline()
+}
+
+// Instance_Number_Abort_Rate_Evaluation 测试不同instance数量(并发度)、冲突率下的abort rate
+func Instance_Number_Abort_Rate_Evaluation() {
+	// 每个instance只出一个块
+	for skew := 0.6; skew <= 1; skew += 0.2 {
+		fmt.Println("	skew=" + strconv.FormatFloat(skew, 'f', 2, 64))
+		if skew == 1 {
+			skew = 0.99
+		}
+		config.ZipfianConstant = skew
+		globalSmallBank.UpdateZipfian()
+		for concurrency := 1; concurrency <= 8; concurrency++ {
+			peer := newPeer(concurrency)
+			peer.run()
+			// 每个instance只有一个块，取出后计算abort rate
+			abort := 0
+			for _, instance := range peer.instances {
+				for _, block := range instance.blocks {
+					for _, tx := range block.txs {
+						if tx.abort {
+							abort++
+						}
+					}
+				}
+			}
+			fmt.Println(float64(abort) / float64(peer.instanceNumber*config.BlockSize))
+		}
+	}
+}
+
+// Instance_Number_Time_Evaluation 测试不同instance数量(并发度)、冲突下各阶段延时
+func Instance_Number_Time_Evaluation() {
+	// 每个instance只出一个块
+	for skew := 0.6; skew <= 1; skew += 0.2 {
+		fmt.Println("	skew=" + strconv.FormatFloat(skew, 'f', 2, 64))
+		if skew == 1 {
+			skew = 0.99
+		}
+		config.ZipfianConstant = skew
+		globalSmallBank.UpdateZipfian()
+		for concurrency := 2; concurrency <= 8; concurrency++ {
+			peer := newPeer(concurrency)
+			peer.run()
+		}
+	}
+}
+func Instance_Number_tps_Evaluation() {
+	// 每个instance只出一个块
+	for skew := 0.6; skew <= 1; skew += 0.2 {
+		fmt.Println("	skew=" + strconv.FormatFloat(skew, 'f', 2, 64))
+		if skew == 1 {
+			skew = 0.99
+		}
+		config.ZipfianConstant = skew
+		globalSmallBank.UpdateZipfian()
+		for concurrency := 2; concurrency <= 8; concurrency++ {
+			peer := newPeer(concurrency)
+			startTime := time.Now()
+			peer.run()
+			duration := time.Since(startTime)
+			fmt.Print(duration)
+			fmt.Print(" ")
+			total := 0
+			for _, instance := range peer.instances {
+				for _, block := range instance.blocks {
+					for _, tx := range block.txs {
+						if !tx.abort {
+							total += 1
+						}
+					}
+				}
+			}
+			//fmt.Println(blockNumber)
+			fmt.Println(total)
+		}
+	}
+}
+func CPU_evaluation() {
+	//打印cpu使用率,每40ms一次，总共9次
+	go func() {
+		peer := newPeer(4)
+		peer.run()
+	}()
+	for i := 1; i < 20; i++ {
+		time.Sleep(time.Millisecond * time.Duration(40))
+		percent, _ := cpu.Percent(time.Second, false)
+		fmt.Printf("%v, cpu percent: %v", i, percent)
+	}
 }

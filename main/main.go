@@ -32,7 +32,11 @@ func eval() {
 	//src.Instance_Waiting_Time_Evalutation()
 	//src.Instance_Not_Execute_Block_Number_Evaluation()
 	//src.Baseline_Not_Execute_Block_Number_Evaluation()
-	src.Baseline_Waiting_Time_Evalutation()
+	//src.Baseline_Waiting_Time_Evalutation()
+	//src.Instance_Number_Abort_Rate_Evaluation()
+	//src.Instance_Number_Time_Evaluation()
+	//src.Instance_Number_tps_Evaluation()
+	src.CPU_evaluation()
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())

@@ -27,7 +27,7 @@ func newInstance(timeout time.Duration, id int) *Instance {
 	instance.timeout = timeout * time.Millisecond
 	instance.hasExecutedIndex = 0
 	instance.id = id
-	instance.maxBlockNumber = 30
+	instance.maxBlockNumber = 10000
 	instance.finish = false
 	return instance
 }

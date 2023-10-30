@@ -1,7 +1,6 @@
 package src
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -15,10 +14,10 @@ func (peer *Peer) runInBaseline() {
 	index := 0
 	for {
 		if peer.checkFinished() {
-			fmt.Println("四个instance全部结束")
+			//fmt.Println("四个instance全部结束")
 			break
 		}
-		if peer.baselineCheck(index + 1) {
+		if peer.baselineCheck(index+1) && peer.checkExecutionTimeout() {
 			peer.UpdateLastExecutionTime()
 			// 开始新一轮执行
 			//fmt.Println("开始新一轮执行...")

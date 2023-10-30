@@ -1,7 +1,6 @@
 package src
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -41,7 +40,7 @@ func (peer *Peer) checkExecutionTimeout() bool {
 func (peer *Peer) checkFinished() bool {
 	total := 0
 	for _, instance := range peer.instances {
-		if instance.finish {
+		if instance.finish && len(instance.blocks) == instance.hasExecutedIndex {
 			total += 1
 		}
 	}
@@ -58,7 +57,7 @@ func (peer *Peer) run() {
 	peer.UpdateLastExecutionTime()
 	for {
 		if peer.checkFinished() {
-			fmt.Println("四个instance全部结束")
+			//fmt.Println("四个instance全部结束")
 			break
 		}
 		if peer.checkExecutionTimeout() {
@@ -85,6 +84,10 @@ func (peer *Peer) run() {
 			wg4Execution.Wait()
 			//执行完毕后，每个instance都得到了自己的ACGs、Cascade
 			//接下来对instance进行排序，对其acg进行合并
+			//fmt.Print("预执行时间:")
+			//fmt.Print(time.Since(startTime))
+			//fmt.Print(" ")
+			//startTime = time.Now()
 			cascade := make(map[string][]int)
 			for _, address := range globalSmallBank.savings {
 				//cascade[address] = make([]int, peer.instanceNumber)
@@ -170,12 +173,25 @@ func (peer *Peer) run() {
 			//fmt.Println(order)
 			abortTxs := make([]*Transaction, 0)
 			writeAddress := make(map[string]bool, 0)
+			//fmt.Print("合并时间:")
+			//fmt.Print(time.Since(startTime))
+			//fmt.Print(" ")
+			//startTime = time.Now()
 			for _, index := range order {
 				peer.instances[index].CascadeAbort(&writeAddress)
 				txs := peer.instances[index].execute(execBlockNumber[index])
 				abortTxs = append(abortTxs, txs...)
 			}
-			peer.reExecute(abortTxs)
+			//fmt.Print("commit时间:")
+			//fmt.Print(time.Since(startTime))
+			//fmt.Print(" ")
+			//startTime = time.Now()
+			//peer.reExecute(abortTxs)
+			//fmt.Print("重执行时间:")
+			//fmt.Print(time.Since(startTime))
+			//fmt.Print(" ")
+			////startTime = time.Now()
+			//fmt.Println()
 			//fmt.Println(time.Since(startTime))
 		}
 	}
